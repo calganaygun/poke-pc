@@ -1,7 +1,11 @@
 # Poke PC
 
 ```bash
-npx github:calganaygun/poke-pc quickstart
+npx poke-pc
+```
+or
+```bash
+npx github:calganaygun/poke-pc
 ```
 
 A Dockerized MCP worker with persistent terminal control, automatic Poke tunnel connection, and optional webhook notifications.
@@ -10,7 +14,7 @@ License: MIT (see LICENSE).
 
 ## Quick Start 🚀
 
-The command above runs an interactive setup that:
+The command runs an interactive setup that:
 
 - checks Docker
 - ensures `poke login` credentials exist (required for tunnel)

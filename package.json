@@ -3,9 +3,7 @@
   "version": "0.1.0",
   "description": "Dockerized Poke PC MCP worker with tmux terminal control, Poke tunnel, and adaptive webhook notifications.",
   "main": "dist/index.js",
-  "bin": {
-    "quickstart": "./scripts/quickstart.mjs"
-  },
+  "bin": "./scripts/quickstart.mjs",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "check": "tsc --noEmit -p tsconfig.json",
@@ -24,7 +22,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/calganaygun/poke-pc.git"
+    "url": "git+https://github.com/calganaygun/poke-pc.git"
   },
   "bugs": {
     "url": "https://github.com/calganaygun/poke-pc/issues"
