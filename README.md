@@ -12,6 +12,14 @@ A Dockerized MCP worker with persistent terminal control, automatic Poke tunnel 
 
 License: MIT (see LICENSE).
 
+## Introduce Poke PC to your Poke agent ⭐
+
+Use this direct recipe link:
+
+https://poke.com/r/kWWE0sbthIQ
+
+You can also copy `RECIPE.md` into your Poke agent configuration.
+
 ## Quick Start 🚀
 
 The command runs an interactive setup that:
@@ -33,6 +41,7 @@ docker exec -it poke-pc tail -f /root/poke-pc/terminal/history.ndjson
 
 - Tunnel auth uses `poke login` credentials from `~/.config/poke/credentials.json`.
 - Webhook integration uses `POKE_API_KEY`.
+- Get your API key from https://poke.com/kitchen/api-keys.
 - Without API key, webhook notifications are disabled.
 
 If credentials are missing on first run, the app shows a login URL and code in logs.
@@ -81,12 +90,6 @@ Bootstrap config can be loaded from file with `POKE_PC_BOOTSTRAP_CONFIG`.
 - `terminal_capture_output`
 - `terminal_kill_session`
 - `terminal_list_commands`
-
-## Poke Agent Recipe
-
-Ready recipe link: [poke.com/r/kWWE0sbthIQ](https://poke.com/r/kWWE0sbthIQ)
-
-You can also use `RECIPE.md` directly.
 
 ## Project docs
 
