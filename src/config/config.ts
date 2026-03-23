@@ -26,7 +26,7 @@ const envSchema = z.object({
   POKE_PC_AUTOREGISTER_WEBHOOK: z
     .string()
     .optional()
-    .transform((v) => (v ?? "true").toLowerCase() !== "false"),
+    .transform((v) => (v ?? "false").toLowerCase() !== "false"),
   POKE_PC_WEBHOOK_CONDITION: z
     .string()
     .default("When terminal commands are long-running or complete"),
@@ -70,6 +70,12 @@ export type AppConfig = {
 
 export function loadConfig(rawEnv: NodeJS.ProcessEnv = process.env): AppConfig {
   const env = envSchema.parse(rawEnv);
+
+  if (env.POKE_PC_AUTOREGISTER_WEBHOOK && !env.POKE_API_KEY) {
+    throw new Error(
+      "POKE_API_KEY is required when POKE_PC_AUTOREGISTER_WEBHOOK=true. Set POKE_PC_AUTOREGISTER_WEBHOOK=false to run without webhook notifications."
+    );
+  }
 
   const stateDir = resolvePath(env.POKE_PC_STATE_DIR ?? "/root/poke-pc");
   mkdirSync(stateDir, { recursive: true });

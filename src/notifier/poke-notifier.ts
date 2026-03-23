@@ -40,6 +40,11 @@ export class PokeNotifier {
   public async init(): Promise<void> {
     mkdirSync(dirname(this.statePath), { recursive: true });
 
+    if (!this.config.pokeApiKey) {
+      this.logger.info("Webhook integration disabled because POKE_API_KEY is not set.");
+      return;
+    }
+
     const persisted = this.loadWebhookState();
     if (persisted) {
       this.webhook = persisted;
@@ -52,19 +57,31 @@ export class PokeNotifier {
       return;
     }
 
-    const created = await this.poke.createWebhook({
-      condition: this.config.webhook.condition,
-      action: this.config.webhook.action
-    });
+    try {
+      const created = await this.poke.createWebhook({
+        condition: this.config.webhook.condition,
+        action: this.config.webhook.action
+      });
 
-    this.webhook = {
-      triggerId: created.triggerId,
-      webhookUrl: created.webhookUrl,
-      webhookToken: created.webhookToken
-    };
+      this.webhook = {
+        triggerId: created.triggerId,
+        webhookUrl: created.webhookUrl,
+        webhookToken: created.webhookToken
+      };
 
-    this.persistWebhookState(this.webhook);
-    this.logger.info({ triggerId: created.triggerId }, "Webhook registered and persisted.");
+      this.persistWebhookState(this.webhook);
+      this.logger.info({ triggerId: created.triggerId }, "Webhook registered and persisted.");
+    } catch (error) {
+      if (isPermissionError(error)) {
+        this.logger.warn(
+          { err: error },
+          "Webhook auto-registration skipped due to API key permission scope. Runtime will continue without webhook notifications."
+        );
+        return;
+      }
+
+      throw error;
+    }
   }
 
   public async sendLongRunningStarted(command: CommandRecord): Promise<void> {
@@ -140,4 +157,14 @@ export class PokeNotifier {
       mode: 0o600
     });
   }
+}
+
+function isPermissionError(error: unknown): boolean {
+  const message =
+    typeof error === "object" && error !== null && "message" in error
+      ? String((error as { message: unknown }).message)
+      : String(error);
+
+  const normalized = message.toLowerCase();
+  return normalized.includes("doesn't have permission") || normalized.includes("permission");
 }

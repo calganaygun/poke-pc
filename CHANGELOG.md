@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog and this project follows Semantic Versioning.
 
-## [0.1.0] - 2026-03-23
+## [0.1.1] - 2026-03-23
 
 ### Added
 - Dockerized Poke PC runtime with MCP terminal control over tmux.

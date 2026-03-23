@@ -49,8 +49,20 @@ Default tunnel name:
 
 Authentication options:
 
-- Option A: set `POKE_API_KEY`
-- Option B: run `poke login` on host and use mounted credentials (no API key needed)
+- Option A: set `POKE_API_KEY` (required for webhook integration)
+- Option B: run `poke login` (required for tunnel to poke)
+
+Tunnel auth precedence:
+
+- Tunnel uses `poke login` credentials from `~/.config/poke/credentials.json` only.
+- `POKE_API_KEY` is not used for tunnel authentication.
+- If credentials are missing, startup triggers device login and stores credentials.
+
+Webhook rule:
+
+- Webhook integration requires `POKE_API_KEY`.
+- If `POKE_API_KEY` is not set, webhook notifications are disabled.
+- If `POKE_PC_AUTOREGISTER_WEBHOOK=true`, `POKE_API_KEY` is required.
 
 First connection behavior without API key:
 
@@ -65,7 +77,7 @@ Useful defaults:
 - `MCP_HOST=0.0.0.0`
 - `MCP_PORT=3000`
 - `MCP_PUBLIC_URL=http://127.0.0.1:3000/mcp`
-- `POKE_PC_AUTOREGISTER_WEBHOOK=true`
+- `POKE_PC_AUTOREGISTER_WEBHOOK=false`
 
 ## Bootstrap configuration
 
@@ -104,6 +116,8 @@ docker compose up --build
 
 Run directly from published image:
 
+**⚠️ WARNING:** Ensure you have `POKE_API_KEY` set in your environment for webhooks, and you ran `poke login` at least once for tunnel credentials.
+
 ```bash
 docker run --rm -it \
   --name poke-pc \
@@ -111,6 +125,7 @@ docker run --rm -it \
   -e POKE_TUNNEL_NAME="poke-pc" \
   -e MCP_PUBLIC_URL="http://127.0.0.1:3000/mcp" \
   -e POKE_PC_AUTOREGISTER_WEBHOOK="true" \
+  -e POKE_API_KEY="${POKE_API_KEY}" \
   -v poke_pc_state:/root/poke-pc \
   -v "$HOME/.config/poke:/root/.config/poke" \
   ghcr.io/calganaygun/poke-pc:latest
@@ -121,6 +136,12 @@ First run note (no host credentials):
 - If `$HOME/.config/poke/credentials.json` does not exist, container logs will print a login URL and user code.
 - Open the URL in a browser and finish login once.
 - The mounted config path keeps credentials for future runs.
+
+If you see API key permission errors during webhook setup:
+
+- Webhook mode requires `POKE_API_KEY` and appropriate webhook scopes.
+- If scope is missing, webhook registration is skipped and notifications are not sent.
+- To run without webhook integration, set `POKE_PC_AUTOREGISTER_WEBHOOK=false`.
 
 Compose bootstrap behavior:
 

@@ -70,7 +70,6 @@ export class TunnelManager {
     const options: {
       url: string;
       name: string;
-      token?: string;
       baseUrl?: string;
       syncIntervalMs: number;
       cleanupOnStop: boolean;
@@ -80,10 +79,6 @@ export class TunnelManager {
       syncIntervalMs: this.config.tunnel.syncIntervalMs,
       cleanupOnStop: true
     };
-
-    if (this.config.pokeApiKey) {
-      options.token = this.config.pokeApiKey;
-    }
 
     if (this.config.pokeApiBaseUrl) {
       options.baseUrl = this.config.pokeApiBaseUrl;

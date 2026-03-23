@@ -12,11 +12,6 @@ function getCredentialsPath(): string {
 }
 
 export async function ensurePokeLogin(config: AppConfig, logger: Logger): Promise<void> {
-  if (config.pokeApiKey) {
-    logger.info("POKE_API_KEY provided; skipping poke login bootstrap.");
-    return;
-  }
-
   const credentialsPath = getCredentialsPath();
   const credentialsPresent = existsSync(credentialsPath);
 
@@ -27,7 +22,7 @@ export async function ensurePokeLogin(config: AppConfig, logger: Logger): Promis
 
   logger.warn(
     { credentialsPath },
-    "No Poke API key or credentials found. Starting interactive device login."
+    "Tunnel requires poke login credentials. Starting interactive device login."
   );
 
   const loginOptions: LoginOptions = {
