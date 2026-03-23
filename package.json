@@ -3,11 +3,15 @@
   "version": "0.1.0",
   "description": "Dockerized Poke PC MCP worker with tmux terminal control, Poke tunnel, and adaptive webhook notifications.",
   "main": "dist/index.js",
+  "bin": {
+    "quickstart": "./scripts/quickstart.mjs"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "check": "tsc --noEmit -p tsconfig.json",
     "dev": "tsx src/index.ts",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "quickstart": "node scripts/quickstart.mjs"
   },
   "keywords": [
     "poke",
