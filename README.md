@@ -1,4 +1,17 @@
-# Poke PC
+<div align="center">
+  <h1>Poke PC</h1>
+  <img src="header.jpg" alt="Poke PC Header">
+  <p>
+    safely extend poke's capabilities to your machine with an isolated docker environment
+  </p>
+  
+  <p>
+    <img src="https://img.shields.io/badge/Language-JavaScript-yellow" alt="Language">
+    <img src="https://img.shields.io/badge/Platform-Docker-blue" alt="Platform">
+    <img src="https://img.shields.io/badge/License-MIT-green" alt="License">
+    <img src="https://img.shields.io/badge/Version-1.0.1-orange" alt="Version">
+  </p>
+</div>
 
 ```bash
 npx poke-pc
@@ -10,15 +23,15 @@ npx github:calganaygun/poke-pc
 
 A Dockerized MCP worker with persistent terminal control, automatic Poke tunnel connection, and optional webhook notifications.
 
-License: MIT (see LICENSE).
+License: MIT
 
-## Introduce Poke PC to your Poke agent ⭐
+## Introduce Poke PC to your Poke ⭐
 
 Use this direct recipe link:
 
 https://poke.com/r/kWWE0sbthIQ
 
-You can also copy `RECIPE.md` into your Poke agent configuration.
+You can also copy `RECIPE.md` into your Poke configuration.
 
 ## Quick Start 🚀
 
