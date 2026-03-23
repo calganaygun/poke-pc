@@ -1,0 +1,23 @@
+services:
+  poke-pc:
+    build: .
+    container_name: poke-pc
+    restart: unless-stopped
+    environment:
+      POKE_TUNNEL_NAME: ${POKE_TUNNEL_NAME:-poke-pc}
+      MCP_PUBLIC_URL: http://127.0.0.1:3000/mcp
+      POKE_PC_AUTOREGISTER_WEBHOOK: "true"
+      POKE_PC_LONG_RUNNING_THRESHOLD_MS: 60000
+      POKE_PC_HEARTBEAT_INTERVAL_MS: 30000
+      POKE_PC_MONITOR_INTERVAL_MS: 5000
+      POKE_PC_BOOTSTRAP_CONFIG: /runtime/bootstrap.yaml
+      POKE_PC_BOOTSTRAP_STRICT: "false"
+    volumes:
+      - poke_pc_state:/root/poke-pc
+      - ${POKE_PC_BOOTSTRAP_FILE:-./config/bootstrap-example.yaml}:/runtime/bootstrap.yaml:ro
+      - ${HOME}/.config/poke:/root/.config/poke
+    ports:
+      - "3000:3000"
+
+volumes:
+  poke_pc_state:

@@ -1,0 +1,21 @@
+# Node / TypeScript
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Local env / secrets
+.env
+.env.*
+!.env.example
+
+# Logs and runtime state
+*.log
+poke-pc/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Docker overrides
+docker-compose.override.yml

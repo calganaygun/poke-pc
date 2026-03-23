@@ -1,0 +1,4 @@
+strict: true
+commands:
+  - echo "starting bootstrap commands"
+  - echo "bootstrap finished"
