@@ -4,6 +4,11 @@
   <p>
     safely extend poke's capabilities to your machine with an isolated docker environment
   </p>
+
+  <p align="center">
+    Let your <a href="https://poke.com">Poke</a> AI assistant to work on a isolated fully containerized environment.<br>
+    <sub>A community project — not affiliated with Poke or The Interaction Company.</sub>
+  </p>
   
   <p>
     <img src="https://img.shields.io/badge/Language-JavaScript-yellow" alt="Language">
@@ -166,3 +171,9 @@ Published image path:
 - `filesystem_read_file` resolves real paths and blocks `~/.config` access to protect credentials.
 - Persisted webhook token is stored in state path with mode `0600`.
 - Logs redact common secret fields.
+
+## Acknowledgements and Credits
+- Inspired by the need for a more robust and persistent Poke work environment.
+- Built with Node.js, Docker, and the Poke SDK.
+- [Poke](https://poke.com) by [The Interaction Company of California](https://interaction.co)
+- [Official Poke SDK](https://www.npmjs.com/package/poke)
