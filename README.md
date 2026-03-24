@@ -9,7 +9,7 @@
     <img src="https://img.shields.io/badge/Language-JavaScript-yellow" alt="Language">
     <img src="https://img.shields.io/badge/Platform-Docker-blue" alt="Platform">
     <img src="https://img.shields.io/badge/License-MIT-green" alt="License">
-    <img src="https://img.shields.io/badge/Version-1.0.1-orange" alt="Version">
+    <img src="https://img.shields.io/badge/Version-0.1.2-orange" alt="Version">
   </p>
 </div>
 
@@ -21,7 +21,7 @@ or
 npx github:calganaygun/poke-pc
 ```
 
-A Dockerized MCP worker with persistent terminal control, automatic Poke tunnel connection, and optional webhook notifications.
+A Dockerized MCP worker with persistent terminal control, automatic Poke tunnel connection, and optional command status notifications to Poke.
 
 License: MIT
 
@@ -38,9 +38,9 @@ You can also copy `RECIPE.md` into your Poke configuration.
 The command runs an interactive setup that:
 
 - checks Docker
-- ensures `poke login` credentials exist (required for tunnel)
-- asks if webhook mode should be enabled
-- asks for `POKE_API_KEY` only if webhook mode is enabled
+- runs Poke SDK device login if credentials are missing
+- stores OAuth token in `~/.config/poke/credentials.json`
+- asks if command status notifications to Poke should be enabled (default: yes)
 - creates persistent volume and starts container in detached mode (no `--rm`)
 
 Useful after setup:
@@ -52,10 +52,9 @@ docker exec -it poke-pc tail -f /root/poke-pc/terminal/history.ndjson
 
 ## Authentication 🔐
 
-- Tunnel auth uses `poke login` credentials from `~/.config/poke/credentials.json`.
-- Webhook integration uses `POKE_API_KEY`.
-- Get your API key from https://poke.com/kitchen/api-keys.
-- Without API key, webhook notifications are disabled.
+- Tunnel and notifications use the same OAuth token credentials from `~/.config/poke/credentials.json`.
+- Quickstart uses Poke SDK device login to generate credentials automatically.
+- No separate manual key setup is required.
 
 If credentials are missing on first run, the app shows a login URL and code in logs.
 
@@ -68,13 +67,12 @@ docker run -d \
   -e POKE_TUNNEL_NAME="poke-pc" \
   -e MCP_PUBLIC_URL="http://127.0.0.1:3000/mcp" \
   -e POKE_PC_AUTOREGISTER_WEBHOOK="true" \
-  -e POKE_API_KEY="${POKE_API_KEY}" \
   -v poke_pc_state:/root/poke-pc \
   -v "$HOME/.config/poke:/root/.config/poke" \
   ghcr.io/calganaygun/poke-pc:latest
 ```
 
-To run without webhook integration:
+To run without command status notifications:
 
 ```bash
 -e POKE_PC_AUTOREGISTER_WEBHOOK="false"
@@ -90,7 +88,7 @@ Common defaults:
 - `MCP_HOST=0.0.0.0`
 - `MCP_PORT=3000`
 - `MCP_PUBLIC_URL=http://127.0.0.1:3000/mcp`
-- `POKE_PC_AUTOREGISTER_WEBHOOK=false`
+- `POKE_PC_AUTOREGISTER_WEBHOOK=true`
 
 Bootstrap config can be loaded from file with `POKE_PC_BOOTSTRAP_CONFIG`.
 
@@ -103,6 +101,7 @@ Bootstrap config can be loaded from file with `POKE_PC_BOOTSTRAP_CONFIG`.
 - `terminal_capture_output`
 - `terminal_kill_session`
 - `terminal_list_commands`
+- `filesystem_read_file` (blocks access under `~/.config`)
 
 ## Project docs
 
@@ -133,7 +132,7 @@ Startup order:
 1. Validate config and initialize state directories.
 2. Initialize tmux manager and restore known sessions.
 3. Run bootstrap commands.
-4. Initialize webhook (load persisted or auto-register).
+4. Initialize command notification channel (load persisted or auto-register).
 5. Start MCP server.
 6. Start Poke tunnel with reconnection loop.
 7. Start command monitor for adaptive heartbeat/completion notifications.
@@ -164,6 +163,6 @@ Published image path:
 ## Security notes
 
 - Container currently runs as root by design for bootstrap flexibility.
-- If using API keys, keep `POKE_API_KEY` in environment secrets, not in image.
+- `filesystem_read_file` resolves real paths and blocks `~/.config` access to protect credentials.
 - Persisted webhook token is stored in state path with mode `0600`.
 - Logs redact common secret fields.

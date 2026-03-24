@@ -6,7 +6,6 @@ import { z } from "zod";
 const envSchema = z.object({
   NODE_ENV: z.string().optional(),
   LOG_LEVEL: z.string().optional(),
-  POKE_API_KEY: z.string().min(1).optional(),
   POKE_API: z.string().url().optional(),
   POKE_TUNNEL_NAME: z.string().min(1).default("poke-pc"),
   MCP_PORT: z.coerce.number().int().min(1).max(65535).default(3000),
@@ -26,7 +25,7 @@ const envSchema = z.object({
   POKE_PC_AUTOREGISTER_WEBHOOK: z
     .string()
     .optional()
-    .transform((v) => (v ?? "false").toLowerCase() !== "false"),
+    .transform((v) => (v ?? "true").toLowerCase() !== "false"),
   POKE_PC_WEBHOOK_CONDITION: z
     .string()
     .default("When terminal commands are long-running or complete"),
@@ -40,7 +39,6 @@ const envSchema = z.object({
 });
 
 export type AppConfig = {
-  pokeApiKey: string | undefined;
   pokeApiBaseUrl: string | undefined;
   tunnelName: string;
   mcpPort: number;
@@ -71,12 +69,6 @@ export type AppConfig = {
 export function loadConfig(rawEnv: NodeJS.ProcessEnv = process.env): AppConfig {
   const env = envSchema.parse(rawEnv);
 
-  if (env.POKE_PC_AUTOREGISTER_WEBHOOK && !env.POKE_API_KEY) {
-    throw new Error(
-      "POKE_API_KEY is required when POKE_PC_AUTOREGISTER_WEBHOOK=true. Set POKE_PC_AUTOREGISTER_WEBHOOK=false to run without webhook notifications."
-    );
-  }
-
   const stateDir = resolvePath(env.POKE_PC_STATE_DIR ?? "/root/poke-pc");
   mkdirSync(stateDir, { recursive: true });
 
@@ -98,7 +90,6 @@ export function loadConfig(rawEnv: NodeJS.ProcessEnv = process.env): AppConfig {
   }
 
   const config: AppConfig = {
-    pokeApiKey: env.POKE_API_KEY,
     pokeApiBaseUrl: env.POKE_API,
     tunnelName: env.POKE_TUNNEL_NAME,
     mcpPort: env.MCP_PORT,

@@ -6,8 +6,11 @@ import { join } from "node:path";
 import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { spawnSync } from "node:child_process";
+import { isLoggedIn, login } from "poke";
 
-const IMAGE = "ghcr.io/calganaygun/poke-pc:latest";
+const isDev = process.env.POKE_PC_ENVIRONMENT === "dev";
+const IMAGE_TAG = isDev ? "dev" : "latest";
+const IMAGE = `ghcr.io/calganaygun/poke-pc:${IMAGE_TAG}`;
 const CONTAINER_NAME = "poke-pc";
 const STATE_VOLUME = "poke_pc_state";
 const CREDENTIALS_PATH = join(homedir(), ".config", "poke", "credentials.json");
@@ -35,7 +38,15 @@ function run(cmd, args, options = {}) {
 }
 
 function step(message) {
-  console.log(`\n>> ${message}`);
+  console.log(`\n🔹 ${message}`);
+}
+
+function printHeader() {
+  console.log("\n############################################");
+  console.log("#                                          #");
+  console.log("#        POKE-PC  QUICKSTART TUI           #");
+  console.log("#                                          #");
+  console.log("############################################\n");
 }
 
 function askYesNo(answer, defaultValue) {
@@ -56,8 +67,8 @@ function askYesNo(answer, defaultValue) {
 }
 
 async function main() {
-  console.log("Poke PC Docker setup");
-  console.log("====================");
+  printHeader();
+  console.log("🚀 Fast setup for Poke PC with Docker + OAuth credentials.\n");
 
   step("Checking Docker installation...");
   run("docker", ["--version"]);
@@ -68,31 +79,26 @@ async function main() {
   const rl = readline.createInterface({ input, output });
 
   try {
-    if (!existsSync(CREDENTIALS_PATH)) {
-      console.log("\nNo poke login credentials found.");
-      step("Running poke login for tunnel authentication...");
-      run("poke", ["login"], { inherit: true });
+    if (!existsSync(CREDENTIALS_PATH) || !isLoggedIn()) {
+      console.log("\n🔐 No valid Poke credentials found.");
+      step("Starting device login with the Poke SDK...");
+
+      await login({
+        openBrowser: false,
+        onCode: ({ userCode, loginUrl }) => {
+          console.log("\n🌐 Complete login in your browser:");
+          console.log(`- URL: ${loginUrl}`);
+          console.log(`- Code: ${userCode}\n`);
+        }
+      });
+
+      console.log(`✅ Credentials saved to ${CREDENTIALS_PATH}`);
     } else {
-      console.log(`\nFound credentials at ${CREDENTIALS_PATH}`);
+      console.log(`\n✅ Found credentials at ${CREDENTIALS_PATH}`);
     }
 
-    const webhookAnswer = await rl.question("Enable webhook integration? (y/N): ");
-    const enableWebhook = askYesNo(webhookAnswer, false);
-
-    let apiKey = "";
-    if (enableWebhook) {
-      const envApiKey = process.env.POKE_API_KEY ?? "";
-      if (envApiKey.trim().length > 0) {
-        apiKey = envApiKey.trim();
-      } else {
-        const typed = await rl.question("Enter POKE_API_KEY for webhook mode: ");
-        apiKey = typed.trim();
-      }
-
-      if (apiKey.length === 0) {
-        throw new Error("Webhook mode requires POKE_API_KEY.");
-      }
-    }
+    const webhookAnswer = await rl.question("Enable webhook integration? (Y/n): ");
+    const enableWebhook = askYesNo(webhookAnswer, true);
 
     const existingNames = run("docker", ["ps", "-a", "--format", "{{.Names}}"], {
       allowFailure: true
@@ -108,7 +114,7 @@ async function main() {
       const replace = askYesNo(replaceAnswer, true);
 
       if (!replace) {
-        console.log("Aborted. Existing container left untouched.");
+        console.log("🛑 Aborted. Existing container left untouched.");
         return;
       }
 
@@ -120,7 +126,13 @@ async function main() {
     run("docker", ["volume", "create", STATE_VOLUME]);
 
     step(`Pulling image ${IMAGE} (this can take a while)...`);
-    run("docker", ["pull", IMAGE], { inherit: true });
+    if (!isDev) {
+      run("docker", ["pull", IMAGE], { inherit: true });
+    } else {
+      console.log(
+        `🧪 Skipping pull in dev mode. Build the image locally with tag '${IMAGE_TAG}'.`
+      );
+    }
 
     const args = [
       "run",
@@ -141,19 +153,16 @@ async function main() {
       `${join(homedir(), ".config", "poke")}:/root/.config/poke`
     ];
 
-    if (enableWebhook) {
-      args.push("-e", `POKE_API_KEY=${apiKey}`);
-    }
-
     args.push(IMAGE);
 
     step("Starting container...");
     run("docker", args, { inherit: true });
 
-    console.log("\nContainer started successfully.");
+    console.log("\n✅ Container started successfully.");
     console.log(`- Name: ${CONTAINER_NAME}`);
     console.log(`- Image: ${IMAGE}`);
-    console.log("\nUseful commands:");
+    console.log(`- Command notifications to Poke: ${enableWebhook ? "enabled" : "disabled"}`);
+    console.log("\n🛠 Useful commands:");
     console.log(`- docker logs -f ${CONTAINER_NAME}`);
     console.log(`- docker exec -it ${CONTAINER_NAME} tail -f /root/poke-pc/terminal/history.ndjson`);
     console.log(`- docker stop ${CONTAINER_NAME}`);
@@ -163,6 +172,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(`\nSetup failed: ${error instanceof Error ? error.message : String(error)}`);
+  console.error(`\n❌ Setup failed: ${error instanceof Error ? error.message : String(error)}`);
   process.exit(1);
 });

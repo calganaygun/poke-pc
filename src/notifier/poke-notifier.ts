@@ -26,10 +26,6 @@ export class PokeNotifier {
 
     const options: PokeOptions = {};
 
-    if (config.pokeApiKey) {
-      options.apiKey = config.pokeApiKey;
-    }
-
     if (config.pokeApiBaseUrl) {
       options.baseUrl = config.pokeApiBaseUrl;
     }
@@ -39,11 +35,6 @@ export class PokeNotifier {
 
   public async init(): Promise<void> {
     mkdirSync(dirname(this.statePath), { recursive: true });
-
-    if (!this.config.pokeApiKey) {
-      this.logger.info("Webhook integration disabled because POKE_API_KEY is not set.");
-      return;
-    }
 
     const persisted = this.loadWebhookState();
     if (persisted) {
@@ -75,7 +66,7 @@ export class PokeNotifier {
       if (isPermissionError(error)) {
         this.logger.warn(
           { err: error },
-          "Webhook auto-registration skipped due to API key permission scope. Runtime will continue without webhook notifications."
+          "Webhook auto-registration skipped due to token permission scope. Runtime will continue without webhook notifications."
         );
         return;
       }

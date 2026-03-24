@@ -1,4 +1,7 @@
 import { randomUUID } from "node:crypto";
+import { homedir } from "node:os";
+import { isAbsolute, relative, resolve } from "node:path";
+import { readFile, realpath, stat } from "node:fs/promises";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js";
@@ -150,7 +153,7 @@ function buildServer(terminal: TerminalManager, logger: Logger): McpServer {
   const server = new McpServer(
     {
       name: "poke-pc",
-      version: "0.1.0"
+      version: "0.1.2"
     },
     {
       capabilities: {
@@ -280,6 +283,138 @@ function buildServer(terminal: TerminalManager, logger: Logger): McpServer {
   );
 
   server.registerTool(
+    "filesystem_read_file",
+    {
+      description:
+        "Read a file from disk. Paths under ~/.config are blocked to protect credentials and local secrets.",
+      inputSchema: z.object({
+        path: z.string().min(1),
+        maxBytes: z.number().int().min(1).max(1024 * 1024).default(200000)
+      })
+    },
+    async ({ path, maxBytes }) => {
+      logger.info({ tool: "filesystem_read_file", path, maxBytes }, "Tool called.");
+
+      try {
+        const requestedPath = resolve(path);
+        const resolvedPath = await realpath(requestedPath);
+        const blockedConfigRoot = resolve(homedir(), ".config");
+
+        if (isPathInside(resolvedPath, blockedConfigRoot)) {
+          logger.warn(
+            {
+              tool: "filesystem_read_file",
+              path,
+              resolvedPath,
+              reason: "blocked_config_path"
+            },
+            "Tool call blocked."
+          );
+
+          return {
+            content: [
+              {
+                type: "text",
+                text: "Access denied: paths under ~/.config are blocked."
+              }
+            ],
+            isError: true
+          };
+        }
+
+        const info = await stat(resolvedPath);
+        if (!info.isFile()) {
+          logger.warn(
+            {
+              tool: "filesystem_read_file",
+              path,
+              resolvedPath,
+              reason: "not_a_file"
+            },
+            "Tool call rejected."
+          );
+
+          return {
+            content: [{ type: "text", text: "Requested path is not a file." }],
+            isError: true
+          };
+        }
+
+        const bytesToRead = Math.min(maxBytes, info.size);
+        const data = await readFile(resolvedPath);
+        const sliced = data.subarray(0, bytesToRead);
+        const truncated = info.size > bytesToRead;
+        const binary = isLikelyBinary(sliced);
+
+        logger.info(
+          {
+            tool: "filesystem_read_file",
+            path,
+            resolvedPath,
+            bytesRead: sliced.length,
+            truncated,
+            binary
+          },
+          "Tool call completed."
+        );
+
+        if (binary) {
+          const encoded = sliced.toString("base64");
+          return {
+            content: [
+              {
+                type: "text",
+                text: [
+                  `path: ${resolvedPath}`,
+                  `encoding: base64`,
+                  `truncated: ${truncated ? "yes" : "no"}`,
+                  "",
+                  encoded
+                ].join("\n")
+              }
+            ],
+            structuredContent: {
+              path: resolvedPath,
+              encoding: "base64",
+              truncated
+            }
+          };
+        }
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: [
+                `path: ${resolvedPath}`,
+                `encoding: utf8`,
+                `truncated: ${truncated ? "yes" : "no"}`,
+                "",
+                sliced.toString("utf8")
+              ].join("\n")
+            }
+          ],
+          structuredContent: {
+            path: resolvedPath,
+            encoding: "utf8",
+            truncated
+          }
+        };
+      } catch (error) {
+        logger.warn(
+          { err: error, tool: "filesystem_read_file", path },
+          "Tool call failed."
+        );
+
+        return {
+          content: [{ type: "text", text: "Unable to read file at requested path." }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  server.registerTool(
     "terminal_list_commands",
     {
       description: "List latest commands and statuses",
@@ -303,4 +438,14 @@ function buildServer(terminal: TerminalManager, logger: Logger): McpServer {
 
   logger.info("MCP tools registered.");
   return server;
+}
+
+function isPathInside(candidatePath: string, parentPath: string): boolean {
+  const rel = relative(parentPath, candidatePath);
+  return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
+}
+
+function isLikelyBinary(content: Buffer): boolean {
+  const sample = content.subarray(0, Math.min(content.length, 8192));
+  return sample.includes(0);
 }

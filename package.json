@@ -1,6 +1,6 @@
 {
   "name": "poke-pc",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Dockerized Poke PC MCP worker with tmux terminal control, Poke tunnel, and adaptive webhook notifications.",
   "main": "dist/index.js",
   "bin": "./scripts/quickstart.mjs",
