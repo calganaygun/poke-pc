@@ -50,7 +50,7 @@ jobs:
         run: |
           KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
           CERT_PATH="$RUNNER_TEMP/apple-cert.p12"
-          echo "$APPLE_CERT_P12_BASE64" | base64 --decode > "$CERT_PATH"
+          echo "$APPLE_CERT_P12_BASE64" | base64 --decode --ignore-garbage > "$CERT_PATH"
           security create-keychain -p "$APPLE_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security default-keychain -s "$KEYCHAIN_PATH"
           security unlock-keychain -p "$APPLE_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
