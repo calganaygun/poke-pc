@@ -115,6 +115,7 @@ export function loadConfig(rawEnv: NodeJS.ProcessEnv = process.env): AppConfig {
 
   mkdirSync(dirname(getWebhookStatePath(config)), { recursive: true });
   mkdirSync(dirname(getTerminalStatePath(config)), { recursive: true });
+  mkdirSync(dirname(getTunnelStatePath(config)), { recursive: true });
 
   return config;
 }
@@ -125,6 +126,10 @@ export function getWebhookStatePath(config: AppConfig): string {
 
 export function getTerminalStatePath(config: AppConfig): string {
   return resolve(config.stateDir, "terminal", "state.json");
+}
+
+export function getTunnelStatePath(config: AppConfig): string {
+  return resolve(config.stateDir, "tunnel", "state.json");
 }
 
 function resolvePath(value: string): string {

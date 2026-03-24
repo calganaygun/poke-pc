@@ -11,7 +11,6 @@ type WebhookState = {
   webhookUrl: string;
   webhookToken: string;
 };
-
 export class PokeNotifier {
   private readonly config: AppConfig;
   private readonly logger: Logger;
@@ -96,6 +95,30 @@ export class PokeNotifier {
     });
   }
 
+  public async sendRuntimeConnected(details: {
+    mcpPublicUrl: string;
+    tunnelName: string;
+  }): Promise<void> {
+    const message = [
+      "A new Poke-PC is connected and ready.",
+      "You can use this machine as a full Ubuntu environment to run shell commands and workflows.",
+      "Available capabilities:",
+      "- Create and manage terminal sessions",
+      "- Run shell commands in tmux windows",
+      "- Check command status and capture output",
+      "- Read/write files, create directories, and inspect filesystem paths",
+      "- Tail logs and monitor long-running command progress",
+      this.config.webhook.autoRegister
+        ? "- Get real-time command progress updates via webhook notifications"
+        : "",
+      `MCP endpoint: ${details.mcpPublicUrl}`,
+      `Tunnel name: ${details.tunnelName}`
+    ].join("\n");
+
+    await this.poke.sendMessage(message);
+    this.logger.info({ mcpPublicUrl: details.mcpPublicUrl }, "Sent runtime onboarding notification.");
+  }
+
   private async send(
     eventName: string,
     command: CommandRecord,
@@ -133,11 +156,13 @@ export class PokeNotifier {
         return undefined;
       }
 
-      return {
+      const state: WebhookState = {
         triggerId: parsed.triggerId,
         webhookUrl: parsed.webhookUrl,
         webhookToken: parsed.webhookToken
       };
+
+      return state;
     } catch {
       return undefined;
     }

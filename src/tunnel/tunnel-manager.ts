@@ -1,19 +1,28 @@
-import { PokeTunnel, type TunnelInfo } from "poke";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { PokeTunnel, getToken, type TunnelInfo } from "poke";
 import type { Logger } from "pino";
 import type { AppConfig } from "../config/config.js";
 
 const MAX_BACKOFF_MS = 30_000;
 
+type TunnelState = {
+  connectionId?: string;
+};
+
 export class TunnelManager {
   private readonly config: AppConfig;
+  private readonly statePath: string;
   private readonly logger: Logger;
   private running = false;
   private currentTunnel: PokeTunnel | undefined;
   private currentInfo: TunnelInfo | undefined;
+  private connectionId: string | undefined;
 
-  public constructor(config: AppConfig, logger: Logger) {
+  public constructor(config: AppConfig, statePath: string, logger: Logger) {
     this.config = config;
+    this.statePath = statePath;
     this.logger = logger.child({ component: "tunnel" });
+    this.connectionId = this.loadState().connectionId;
   }
 
   public get connected(): boolean {
@@ -28,6 +37,14 @@ export class TunnelManager {
     this.running = true;
     let attempt = 0;
     this.logger.info({ tunnelName: this.config.tunnelName }, "Tunnel manager loop started.");
+
+    if (this.connectionId) {
+      this.logger.info(
+        { connectionId: this.connectionId, statePath: this.statePath },
+        "Found persisted MCP connection ID in state folder; attempting stale cleanup before reconnect."
+      );
+      await this.cleanupConnection();
+    }
 
     while (this.running) {
       try {
@@ -64,6 +81,43 @@ export class TunnelManager {
 
     this.currentTunnel = undefined;
     this.currentInfo = undefined;
+  }
+
+  public async cleanupConnection(): Promise<void> {
+    const connectionId = this.connectionId;
+    if (!connectionId) {
+      return;
+    }
+
+    const token = getToken();
+    if (!token) {
+      this.logger.warn({ connectionId }, "No auth token available; skipping MCP connection cleanup.");
+      return;
+    }
+
+    const base = this.config.pokeApiBaseUrl ?? "https://poke.com/api/v1";
+    const url = `${base}/mcp/connections/${encodeURIComponent(connectionId)}`;
+
+    try {
+      const response = await fetch(url, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (response.ok || response.status === 404) {
+        this.logger.info({ connectionId, status: response.status }, "MCP connection cleanup completed.");
+        this.connectionId = undefined;
+        this.saveState({});
+        return;
+      }
+
+      this.logger.warn(
+        { connectionId, status: response.status },
+        "MCP connection cleanup request returned non-success status."
+      );
+    } catch (error) {
+      this.logger.warn({ err: error, connectionId }, "Failed to cleanup MCP connection.");
+    }
   }
 
   private async startOneTunnelSession(): Promise<void> {
@@ -105,6 +159,8 @@ export class TunnelManager {
 
     tunnel.on("connected", (info) => {
       this.currentInfo = info;
+      this.connectionId = info.connectionId;
+      this.saveState({ connectionId: info.connectionId });
       this.logger.info({ info }, "Tunnel connected.");
     });
 
@@ -138,6 +194,29 @@ export class TunnelManager {
     this.currentInfo = undefined;
 
     throw new Error(`Tunnel session ended: ${reason}`);
+  }
+
+  private loadState(): TunnelState {
+    if (!existsSync(this.statePath)) {
+      return {};
+    }
+
+    try {
+      const raw = readFileSync(this.statePath, "utf8");
+      const parsed = JSON.parse(raw) as Partial<TunnelState>;
+      if (typeof parsed.connectionId === "string" && parsed.connectionId.length > 0) {
+        return { connectionId: parsed.connectionId };
+      }
+      return {};
+    } catch {
+      return {};
+    }
+  }
+
+  private saveState(state: TunnelState): void {
+    writeFileSync(this.statePath, JSON.stringify(state, null, 2), {
+      mode: 0o600
+    });
   }
 }
 

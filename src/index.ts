@@ -1,4 +1,9 @@
-import { loadConfig, getTerminalStatePath, getWebhookStatePath } from "./config/config.js";
+import {
+  loadConfig,
+  getTerminalStatePath,
+  getWebhookStatePath,
+  getTunnelStatePath
+} from "./config/config.js";
 import { logger } from "./logger.js";
 import { runBootstrap } from "./bootstrap/bootstrap.js";
 import { TerminalManager } from "./terminal/terminal-manager.js";
@@ -36,15 +41,19 @@ async function main(): Promise<void> {
   monitor.start();
 
   const mcp = await startMcpServer({ config, terminal, logger });
+  await notifier.sendRuntimeConnected({
+    mcpPublicUrl: config.mcpPublicUrl,
+    tunnelName: config.tunnelName
+  });
 
-  const tunnel = new TunnelManager(config, logger);
+  const tunnel = new TunnelManager(config, getTunnelStatePath(config), logger);
   const tunnelPromise = tunnel.start();
 
   const shutdown = async (signal: string): Promise<void> => {
     appLogger.info({ signal }, "Shutdown requested.");
     monitor.stop();
 
-    await Promise.allSettled([tunnel.stop(), mcp.close()]);
+    await Promise.allSettled([tunnel.stop(), tunnel.cleanupConnection(), mcp.close()]);
     process.exit(0);
   };
 

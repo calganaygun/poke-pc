@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog and this project follows Semantic Versioning.
 
+## [0.2.7] - 2026-03-24
+
+### Added
+- Native macOS app packaging and release workflow under `macos-app/`.
+
+### Changed
+- Persist tunnel `connectionId` in the state folder to survive restarts.
+- Cleanup stale/old MCP connections via HTTP API on startup and graceful shutdown.
+
 ## [0.1.1] - 2026-03-23
 
 ### Added
