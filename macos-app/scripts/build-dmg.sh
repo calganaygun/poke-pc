@@ -28,4 +28,9 @@ hdiutil create \
   -format UDZO \
   "$DMG_PATH"
 
+if [[ -n "${APPLE_SIGN_IDENTITY:-}" ]]; then
+  echo "Signing DMG with Developer ID identity"
+  codesign --force --timestamp --sign "$APPLE_SIGN_IDENTITY" "$DMG_PATH"
+fi
+
 echo "DMG ready: $DMG_PATH"

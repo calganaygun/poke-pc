@@ -85,8 +85,23 @@ PLIST
 
 perl -0pi -e "s/__APP_NAME__/$APP_NAME/g; s/__BUNDLE_ID__/$BUNDLE_ID/g; s/__BUILD_NUMBER__/$BUILD_NUMBER/g; s/__VERSION__/$VERSION/g" "$APP_DIR/Contents/Info.plist"
 
-echo "[4/4] Applying ad-hoc code signature"
-SIGN_IDENTITY="${APPLE_SIGN_IDENTITY:--}"
-codesign --force --deep --sign "$SIGN_IDENTITY" "$APP_DIR" >/dev/null 2>&1 || true
+echo "[4/4] Code signing app bundle"
+SIGN_IDENTITY="${APPLE_SIGN_IDENTITY:-}"
+
+if [[ -n "$SIGN_IDENTITY" ]]; then
+  echo "Signing with Developer ID identity"
+  codesign \
+    --force \
+    --deep \
+    --options runtime \
+    --timestamp \
+    --sign "$SIGN_IDENTITY" \
+    "$APP_DIR"
+else
+  echo "APPLE_SIGN_IDENTITY not set; using ad-hoc signature"
+  codesign --force --deep --sign - "$APP_DIR"
+fi
+
+codesign --verify --deep --strict --verbose=2 "$APP_DIR"
 
 echo "App bundle ready: $APP_DIR"
