@@ -9,7 +9,8 @@
     "check": "tsc --noEmit -p tsconfig.json",
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js",
-    "quickstart": "node scripts/quickstart.mjs"
+    "quickstart": "node scripts/quickstart.mjs",
+    "sync:version": "node scripts/sync-version-from-tag.mjs"
   },
   "keywords": [
     "poke",

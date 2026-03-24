@@ -1,19 +1,125 @@
-name: Create GitHub Release
+name: Release
 
 on:
   push:
     tags:
       - "v*"
+    branches-ignore:
+      - "dependabot/**"
 
 permissions:
   contents: write
+  packages: read
 
 jobs:
-  release:
-    runs-on: ubuntu-latest
+  macos-release:
+    if: github.actor != 'dependabot[bot]'
+    runs-on: macos-latest
     steps:
-      - name: Create release
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Derive version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Check Apple signing secrets
+        id: apple_signing
+        env:
+          APPLE_CERT_P12_BASE64: ${{ secrets.APPLE_CERT_P12_BASE64 }}
+          APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+          APPLE_KEYCHAIN_PASSWORD: ${{ secrets.APPLE_KEYCHAIN_PASSWORD }}
+        run: |
+          if [ -n "$APPLE_CERT_P12_BASE64" ] && [ -n "$APPLE_CERT_PASSWORD" ] && [ -n "$APPLE_KEYCHAIN_PASSWORD" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Sync versions from tag
+        run: node scripts/sync-version-from-tag.mjs "$GITHUB_REF_NAME"
+
+      - name: Import Apple signing certificate (optional)
+        if: ${{ steps.apple_signing.outputs.enabled == 'true' }}
+        env:
+          APPLE_CERT_P12_BASE64: ${{ secrets.APPLE_CERT_P12_BASE64 }}
+          APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+          APPLE_KEYCHAIN_PASSWORD: ${{ secrets.APPLE_KEYCHAIN_PASSWORD }}
+        run: |
+          KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
+          CERT_PATH="$RUNNER_TEMP/apple-cert.p12"
+          echo "$APPLE_CERT_P12_BASE64" | base64 --decode > "$CERT_PATH"
+          security create-keychain -p "$APPLE_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security default-keychain -s "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$APPLE_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -k "$KEYCHAIN_PATH" -P "$APPLE_CERT_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$APPLE_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+      - name: Build macOS app and DMG
+        env:
+          APP_VERSION: ${{ steps.version.outputs.version }}
+          APP_BUILD: ${{ github.run_number }}
+          APPLE_SIGN_IDENTITY: ${{ secrets.APPLE_SIGN_IDENTITY }}
+          APP_BUNDLE_ID: dev.calgan.poke-pc
+        run: |
+          cd macos-app
+          ./scripts/release.sh
+
+      - name: Publish release and DMG asset
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
           body_path: CHANGELOG.md
+          files: |
+            macos-app/build/Poke-PC.dmg
+
+  npm-publish:
+    runs-on: ubuntu-latest
+    needs: macos-release
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - name: Check npm publish token
+        id: npm_token
+        run: |
+          if [ -n "$NPM_TOKEN" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "NPM_TOKEN is not set. npm publish will be skipped."
+          fi
+
+      - name: Checkout
+        if: ${{ steps.npm_token.outputs.enabled == 'true' }}
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        if: ${{ steps.npm_token.outputs.enabled == 'true' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      - name: Sync versions from tag
+        if: ${{ steps.npm_token.outputs.enabled == 'true' }}
+        run: node scripts/sync-version-from-tag.mjs "$GITHUB_REF_NAME"
+
+      - name: Install dependencies
+        if: ${{ steps.npm_token.outputs.enabled == 'true' }}
+        run: npm ci
+
+      - name: Build package
+        if: ${{ steps.npm_token.outputs.enabled == 'true' }}
+        run: npm run build
+
+      - name: Publish to npm
+        if: ${{ steps.npm_token.outputs.enabled == 'true' }}
+        env:
+          NODE_AUTH_TOKEN: ${{ env.NPM_TOKEN }}
+        run: npm publish --access public
