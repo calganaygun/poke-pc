@@ -18,12 +18,24 @@
   </p>
 </div>
 
+## macOS App
+
+The macOS app is downloadable from [GitHub Releases](https://github.com/calganaygun/poke-pc/releases). 
+Note: Apple notarization is still pending, so macOS may show a security warning on first launch.
+
+If you see the warning:
+
+1. Click `Done`.
+2. Open `System Settings > Privacy & Security`.
+3. Click `Open Anyway` for Poke PC, then confirm launch.
+
+<p align="center">
+  <img src="snapshot.png" alt="Poke PC macOS GUI snapshot" width="900">
+</p>
+
+## CLI
 ```bash
 npx poke-pc
-```
-or
-```bash
-npx github:calganaygun/poke-pc
 ```
 
 A Dockerized MCP worker with persistent terminal control, automatic Poke tunnel connection, and optional command status notifications to Poke.
