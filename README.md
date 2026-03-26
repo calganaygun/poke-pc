@@ -20,14 +20,8 @@
 
 ## macOS App
 
-The macOS app is downloadable from [GitHub Releases](https://github.com/calganaygun/poke-pc/releases). 
-Note: Apple notarization is still pending, so macOS may show a security warning on first launch.
-
-If you see the warning:
-
-1. Click `Done`.
-2. Open `System Settings > Privacy & Security`.
-3. Click `Open Anyway` for Poke PC, then confirm launch.
+The macOS app is downloadable from [GitHub Releases](https://github.com/calganaygun/poke-pc/releases).
+You can download latest DMG file from [here](https://github.com/calganaygun/poke-pc/releases/latest/download/Poke-PC.dmg)
 
 <p align="center">
   <img src="snapshot.png" alt="Poke PC macOS GUI snapshot" width="900">
