@@ -43,7 +43,7 @@ jobs:
 
       - name: Import Apple signing certificate (optional)
         if: ${{ steps.apple_signing.outputs.enabled == 'true' }}
-        uses: apple-actions/import-codesign-certs@v2
+        uses: apple-actions/import-codesign-certs@v6
         with:
           p12-file-base64: ${{ secrets.APPLE_CERT_P12_BASE64 }}
           p12-password: ${{ secrets.APPLE_CERT_PASSWORD }}
