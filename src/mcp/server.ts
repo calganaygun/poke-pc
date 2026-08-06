@@ -29,6 +29,15 @@ export async function startMcpServer({
   logger
 }: Dependencies): Promise<RunningMcpServer> {
   const app = createMcpExpressApp({ host: config.mcpHost });
+  const tunnelMcpPath = /^\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\/mcp$/;
+
+  app.use((req, _res, next) => {
+    if (tunnelMcpPath.test(req.path)) {
+      req.url = '/mcp' + req.url.slice(req.path.length);
+    }
+    next();
+  });
+
   const transportBySession: Record<string, StreamableHTTPServerTransport> = {};
 
   const mcpPostHandler = async (req: Request, res: Response): Promise<void> => {
